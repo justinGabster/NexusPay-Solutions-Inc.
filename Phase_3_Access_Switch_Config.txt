@@ -1,0 +1,71 @@
+! Access Switch Configuration Template
+! Copy and paste this directly into the CLI of the Access Switches in Packet Tracer
+! Note: Replace 'Access-Sw-1' and VLAN assignments depending on the specific switch's role
+
+enable
+configure terminal
+
+hostname Access-Sw-1
+
+! Create VLANs locally on the access switch
+vlan 10
+ name Executive
+vlan 20
+ name IT_Ops
+vlan 30
+ name Core_Dev
+vlan 40
+ name Finance
+vlan 50
+ name HR
+vlan 60
+ name Guest
+vlan 70
+ name Server_Farm
+vlan 99
+ name Management
+exit
+
+! Configure Management IP (SVI 99)
+! Note: Assign a unique IP for each Access Switch from the 192.168.10.240/28 range
+! E.g., Sw-1: .244, Sw-2: .245, etc.
+interface Vlan 99
+ ip address 192.168.10.244 255.255.255.240
+ no shutdown
+exit
+
+! Default Gateway for Management Traffic (Points to the HSRP VIP for VLAN 99)
+ip default-gateway 192.168.10.241
+
+! Configure Uplinks to Core Switches as Trunks (Assuming Gig0/1 and Gig0/2)
+! Using Spanning Tree Protocol (STP), one link will automatically block to prevent loops
+interface range GigabitEthernet0/1-2
+ switchport mode trunk
+ switchport trunk allowed vlan 10,20,30,40,50,60,70,99
+ no shutdown
+exit
+
+! Configure Access Ports (Example: Assigning FastEthernet0/1 to 0/10 to VLAN 30 Dev)
+interface range FastEthernet0/1-10
+ switchport mode access
+ switchport access vlan 30
+ spanning-tree portfast
+ ! Optional: Port Security
+ switchport port-security
+ switchport port-security maximum 1
+ switchport port-security violation restrict
+ switchport port-security mac-address sticky
+ no shutdown
+exit
+
+! Basic Security
+line console 0
+ password cisco
+ login
+line vty 0 4
+ password cisco
+ login
+exit
+
+end
+write memory

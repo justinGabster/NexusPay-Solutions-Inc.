@@ -1,0 +1,132 @@
+! Core Switch A Configuration
+! Copy and paste this directly into the CLI of the Core Switch A in Packet Tracer
+
+enable
+configure terminal
+
+hostname Core-Sw-A
+
+! Enable Inter-VLAN Routing
+ip routing
+
+! Create VLANs
+vlan 10
+ name Executive
+vlan 20
+ name IT_Ops
+vlan 30
+ name Core_Dev
+vlan 40
+ name Finance
+vlan 50
+ name HR
+vlan 60
+ name Guest
+vlan 70
+ name Server_Farm
+vlan 99
+ name Management
+exit
+
+! Configure SVIs (Switch Virtual Interfaces) with HSRP (High Availability)
+! Note: .1 is the Virtual IP (Gateway for PCs), .2 is Core-Sw-A, .3 is Core-Sw-B
+
+interface Vlan 10
+ ip address 192.168.10.162 255.255.255.224
+ standby 10 ip 192.168.10.161
+ standby 10 priority 110
+ standby 10 preempt
+ ip helper-address 192.168.10.230
+ no shutdown
+
+interface Vlan 20
+ ip address 192.168.10.66 255.255.255.224
+ standby 20 ip 192.168.10.65
+ standby 20 priority 110
+ standby 20 preempt
+ ip helper-address 192.168.10.230
+ no shutdown
+
+interface Vlan 30
+ ip address 192.168.10.2 255.255.255.192
+ standby 30 ip 192.168.10.1
+ standby 30 priority 110
+ standby 30 preempt
+ ip helper-address 192.168.10.230
+ no shutdown
+
+interface Vlan 40
+ ip address 192.168.10.194 255.255.255.224
+ standby 40 ip 192.168.10.193
+ standby 40 priority 110
+ standby 40 preempt
+ ip helper-address 192.168.10.230
+ no shutdown
+
+interface Vlan 50
+ ip address 192.168.10.98 255.255.255.224
+ standby 50 ip 192.168.10.97
+ standby 50 priority 110
+ standby 50 preempt
+ ip helper-address 192.168.10.230
+ no shutdown
+
+interface Vlan 60
+ ip address 192.168.10.130 255.255.255.224
+ standby 60 ip 192.168.10.129
+ standby 60 priority 110
+ standby 60 preempt
+ ip helper-address 192.168.10.230
+ ! Apply Guest ACL here
+ ip access-group GUEST_RESTRICTION in
+ no shutdown
+
+interface Vlan 70
+ ip address 192.168.10.226 255.255.255.240
+ ! Wait, .226 is the SVI. Let's make .225 the VIP, .226 Sw-A, .227 Sw-B. 
+ ! Then DHCP/FTP servers can be .230, .231
+ standby 70 ip 192.168.10.225
+ standby 70 priority 110
+ standby 70 preempt
+ no shutdown
+
+interface Vlan 99
+ ip address 192.168.10.242 255.255.255.240
+ standby 99 ip 192.168.10.241
+ standby 99 priority 110
+ standby 99 preempt
+ no shutdown
+
+! Configure Guest ACL
+! Allows DHCP, DNS, and FTP to the Server Farm. Denies all other internal traffic. Allows Internet.
+ip access-list extended GUEST_RESTRICTION
+ permit udp any any eq bootpc
+ permit udp any any eq bootps
+ permit udp 192.168.10.128 0.0.0.31 any eq domain
+ permit tcp 192.168.10.128 0.0.0.31 host 192.168.10.231 eq ftp
+ permit tcp 192.168.10.128 0.0.0.31 host 192.168.10.231 eq ftp-data
+ deny ip 192.168.10.128 0.0.0.31 192.168.10.0 0.0.0.255
+ permit ip 192.168.10.128 0.0.0.31 any
+exit
+
+! Routing to Edge Router (Assuming GigabitEthernet1/0/1 connects to Edge Router)
+! Replace interface name as needed based on your Packet Tracer wiring
+interface GigabitEthernet1/0/1
+ no switchport
+ ip address 10.0.0.1 255.255.255.252
+ no shutdown
+
+! Default route to Internet
+ip route 0.0.0.0 0.0.0.0 10.0.0.2
+
+! Basic Security
+line console 0
+ password cisco
+ login
+line vty 0 4
+ password cisco
+ login
+exit
+
+end
+write memory

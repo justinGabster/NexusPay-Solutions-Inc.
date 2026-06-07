@@ -1,0 +1,60 @@
+! Edge Router Configuration
+! Copy and paste this directly into the CLI of the Edge Router in Packet Tracer
+
+enable
+configure terminal
+
+hostname Edge-Router
+
+! Interface connecting to the Internet/ISP
+! Replace interface name as needed (e.g. GigabitEthernet0/0)
+interface GigabitEthernet0/0
+ description Link to ISP
+ ip address 203.0.113.1 255.255.255.252
+ ip nat outside
+ no shutdown
+exit
+
+! Interface connecting to Core Switch A
+interface GigabitEthernet0/1
+ description Link to Core-Sw-A
+ ip address 10.0.0.2 255.255.255.252
+ ip nat inside
+ no shutdown
+exit
+
+! Interface connecting to Core Switch B
+interface GigabitEthernet0/2
+ description Link to Core-Sw-B
+ ip address 10.0.0.6 255.255.255.252
+ ip nat inside
+ no shutdown
+exit
+
+! Static Routes to Internal Networks (pointing back to Core Switches)
+! Primary route via Core Switch A
+ip route 192.168.10.0 255.255.255.0 10.0.0.1
+! Backup route via Core Switch B (Higher administrative distance)
+ip route 192.168.10.0 255.255.255.0 10.0.0.5 10
+
+! Default Route to Internet
+ip route 0.0.0.0 0.0.0.0 203.0.113.2
+
+! Network Address Translation (NAT) Configuration
+! Standard ACL to define inside addresses that are allowed to be translated
+access-list 1 permit 192.168.10.0 0.0.0.255
+
+! PAT (Port Address Translation) Overload Rule
+ip nat inside source list 1 interface GigabitEthernet0/0 overload
+
+! Basic Security
+line console 0
+ password cisco
+ login
+line vty 0 4
+ password cisco
+ login
+exit
+
+end
+write memory
